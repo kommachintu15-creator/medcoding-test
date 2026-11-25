@@ -98,4 +98,99 @@
     <div class="card"><h3 style="margin-bottom:10px; color:var(--navy);">Recent History</h3><div id="historyList" style="font-size:0.88rem; color:var(--muted);">No assessments taken yet.</div></div>
   </div>
   </div>
+  <div class="modal-overlay" id="paywallModal">
+  <div class="modal">
+    <div style="font-size:2.2rem; margin-bottom:8px;">🔒</div>
+    <h2 style="color:var(--navy); margin-bottom:8px;">Unlock Premium Portal</h2>
+    <p style="color:var(--muted); font-size:0.9rem; margin-bottom:16px;">You reached the end of the <strong>2-Question Free Preview</strong>. Pay once to unlock all 9 modules & mock exams.</p>
+    <a id="paymentLinkBtn" href="https://topmate.io" target="_blank" class="btn btn-teal" style="margin-bottom:12px;">Pay ₹99 via UPI / Card to Get Code →</a>
+    <div style="border-top:1px solid #e2e8f0; padding-top:14px; margin-top:6px;">
+      <div style="font-size:0.8rem; color:var(--muted); font-weight:600;">Already paid? Enter Access Code:</div>
+      <div class="code-box"><input type="text" id="accessCodeInput" placeholder="MEDCODE2026" /><button class="btn btn-navy" onclick="verifyCode()">Unlock</button></div>
+      <div id="codeError" style="color:var(--danger); font-size:0.8rem; margin-top:6px;" class="hidden">Invalid code.</div>
+    </div>
+    <button onclick="closePaywall()" style="background:none; border:none; color:var(--muted); margin-top:14px; cursor:pointer;">Close</button>
+  </div>
+</div>
+<script>
+  const SECRET_UNLOCK_CODE = "MEDCODE2026";
+  const CATEGORIES = ["Medical Terminology","Anatomy and Physiology","Diseases and Conditions","Medical Abbreviations","Medical Coding Guidelines","ICD-10-CM Fundamentals","Medical Coding Scenarios","Medical Coding Interview Preparation","Mixed Mock Assessments"];
+  const QUESTIONS = [
+    {cat:"Medical Terminology",diff:"Beginner",q:"What does the medical suffix '-ectomy' indicate?",options:["Surgical repair","Surgical removal or excision","Visual examination","Artificial opening"],ans:1,exp:"'-ectomy' means surgical removal or excision (e.g., appendectomy)."},
+    {cat:"ICD-10-CM Fundamentals",diff:"Beginner",q:"In ICD-10-CM, what does an 'Excludes1' note mean?",options:["Code both together","Never code the excluded condition with the code above","Code secondary first","Add 7th character"],ans:1,exp:"Excludes1 means 'NOT CODED HERE'—the two conditions cannot occur together."},
+    {cat:"Anatomy and Physiology",diff:"Intermediate",q:"Which valve prevents backflow from the left ventricle to the left atrium?",options:["Tricuspid","Pulmonary","Mitral (bicuspid)","Aortic"],ans:2,exp:"The mitral valve sits between the left atrium and left ventricle."},
+    {cat:"Medical Abbreviations",diff:"Beginner",q:"What does 'CABG' stand for?",options:["Coronary Artery Bypass Graft","Cerebral Arterial Blood Gas","Chronic Acute Bronchial Growth","Cardiac Atrial Block"],ans:0,exp:"CABG stands for Coronary Artery Bypass Graft."},
+    {cat:"Medical Coding Guidelines",diff:"Intermediate",q:"In outpatient coding, how are 'probable' or 'rule out' diagnoses coded?",options:["Code as confirmed","Code documented signs/symptoms instead","Use unspecified code","Query payer"],ans:1,exp:"Outpatient guidelines never code uncertain diagnoses as confirmed; code signs/symptoms."},
+    {cat:"Diseases and Conditions",diff:"Intermediate",q:"What is the default ICD-10-CM type when 'diabetes mellitus' is undocumented by type?",options:["Type 1 (E10)","Type 2 (E11)","Drug-induced (E09)","Other specified (E13)"],ans:1,exp:"Type 2 diabetes mellitus (E11) is the default when type is not specified."},
+    {cat:"Medical Coding Scenarios",diff:"Advanced",q:"Outpatient surgery for acute appendicitis in a patient with hypertension. What is sequenced first?",options:["Hypertension","Acute appendicitis","Long-term drug therapy","Either"],ans:1,exp:"Code the reason for outpatient surgery (acute appendicitis) first."},
+    {cat:"Medical Coding Interview Preparation",diff:"Beginner",q:"Difference between ICD-10-CM and CPT?",options:["ICD is procedures, CPT is diagnoses","ICD is diagnoses, CPT is procedures/services","Both inpatient only","Both owned by WHO"],ans:1,exp:"ICD-10-CM reports diagnoses; CPT reports medical procedures and services."},
+    {cat:"Mixed Mock Assessments",diff:"Advanced",q:"Which placeholder fills empty positions before a 7th character in ICD-10-CM?",options:["0","-","X","Blank"],ans:2,exp:"'X' is used as the dummy placeholder character."}
+  ];
+  let isUnlocked = localStorage.getItem("medcode_unlocked") === "true", currentQuiz = [], currentIndex = 0, userAnswers = [], currentCategoryName = "", timerInterval = null, secondsLeft = 900;
+  function init() { updateLockUI(); renderCategories(); renderDashboard(); }
+  function updateLockUI() { const b = document.getElementById("statusBadge"); b.textContent = isUnlocked ? "✅ Premium Unlocked" : "🔒 Free Preview (2 Qs)"; b.classList.toggle("unlocked", isUnlocked); }
+  function renderCategories() {
+    const g = document.getElementById("categoryGrid"); g.innerHTML = "";
+    CATEGORIES.forEach((cat, idx) => {
+      const d = document.createElement("div"); d.className = "cat-card";
+      const badge = isUnlocked ? `<span class="lock-pill pill-free">Unlocked</span>` : (idx === 0 ? `<span class="lock-pill pill-free">2 Qs Free</span>` : `<span class="lock-pill pill-lock">🔒 Premium</span>`);
+      d.innerHTML = `<div><div class="cat-title">${idx+1}. ${cat}</div><div class="cat-meta">MCQs • Timed • Explanations</div></div>${badge}`;
+      d.onclick = () => (!isUnlocked && idx !== 0) ? openPaywall() : startQuiz(cat);
+      g.appendChild(d);
+    });
+  }
+  function startQuiz(cat) {
+    currentCategoryName = cat === "ALL" ? "Free 2-Question Demo" : cat;
+    let pool = (cat === "ALL" || cat === "Mixed Mock Assessments") ? [...QUESTIONS] : QUESTIONS.filter(q => q.cat === cat);
+    currentQuiz = !isUnlocked ? QUESTIONS.slice(0, 2) : (pool.length ? pool : [...QUESTIONS]);
+    if (!isUnlocked) currentCategoryName = "Free 2-Question Preview";
+    currentIndex = 0; userAnswers = new Array(currentQuiz.length).fill(null); secondsLeft = currentQuiz.length * 60;
+    ["homeView","resultView","dashboardView"].forEach(id => document.getElementById(id).classList.add("hidden"));
+    document.getElementById("quizView").classList.remove("hidden");
+    document.getElementById("quizCatLabel").textContent = currentCategoryName;
+    clearInterval(timerInterval); timerInterval = setInterval(() => { secondsLeft--; document.getElementById("timerDisplay").textContent = `${String(Math.floor(secondsLeft/60)).padStart(2,"0")}:${String(secondsLeft%60).padStart(2,"0")}`; if (secondsLeft <= 0) submitQuiz(); }, 1000);
+    renderQuestion();
+  }
+  function renderQuestion() {
+    const q = currentQuiz[currentIndex];
+    document.getElementById("qCounter").textContent = `Q ${currentIndex+1}/${currentQuiz.length}`;
+    document.getElementById("questionText").textContent = `[${q.diff}] ${q.q}`;
+    const list = document.getElementById("optionsList"); list.innerHTML = "";
+    q.options.forEach((opt, i) => {
+      const b = document.createElement("button"); b.className = "option" + (userAnswers[currentIndex] === i ? " selected" : "");
+      b.textContent = `${String.fromCharCode(65+i)}. ${opt}`; b.onclick = () => { userAnswers[currentIndex] = i; renderQuestion(); }; list.appendChild(b);
+    });
+    document.getElementById("prevBtn").disabled = currentIndex === 0;
+    document.getElementById("nextBtn").textContent = currentIndex === currentQuiz.length - 1 ? (isUnlocked ? "Submit ✓" : "Finish & Unlock →") : "Next →";
+  }
+  function prevQuestion() { if (currentIndex > 0) { currentIndex--; renderQuestion(); } }
+  function nextQuestion() { if (currentIndex < currentQuiz.length - 1) { currentIndex++; renderQuestion(); } else submitQuiz(); }
+  function submitQuiz() {
+    clearInterval(timerInterval);
+    let score = currentQuiz.reduce((acc, q, i) => acc + (userAnswers[i] === q.ans ? 1 : 0), 0);
+    const pct = Math.round((score / currentQuiz.length) * 100);
+    const hist = JSON.parse(localStorage.getItem("medcode_history") || "[]");
+    hist.unshift({ cat: currentCategoryName, score, total: currentQuiz.length, pct, date: new Date().toLocaleDateString() });
+    localStorage.setItem("medcode_history", JSON.stringify(hist));
+    document.getElementById("quizView").classList.add("hidden"); document.getElementById("resultView").classList.remove("hidden");
+    document.getElementById("finalScoreText").textContent = `${pct}%`;
+    document.getElementById("finalSummaryText").textContent = `Scored ${score}/${currentQuiz.length} in ${currentCategoryName}.`;
+    document.getElementById("upsellAfterDemo").classList.toggle("hidden", isUnlocked);
+    document.getElementById("reviewContainer").innerHTML = currentQuiz.map((q, i) => {
+      const ok = userAnswers[i] === q.ans;
+      return `<div class="card"><div style="font-weight:700;margin-bottom:6px;">Q${i+1}. ${q.q}</div><div style="color:${ok?'var(--success)':'var(--danger)'};font-weight:600;">Your Answer: ${userAnswers[i]!==null?q.options[userAnswers[i]]:'None'} ${ok?'✓':'✗'}</div>${!ok?`<div style="color:var(--success);font-weight:600;">Correct: ${q.options[q.ans]}</div>`:''}<div class="exp-box"><strong>Explanation:</strong> ${q.exp}</div></div>`;
+    }).join("");
+    if (!isUnlocked) setTimeout(openPaywall, 800);
+  }
+  function openPaywall() { document.getElementById("paywallModal").style.display = "flex"; }
+  function closePaywall() { document.getElementById("paywallModal").style.display = "none"; }
+  function verifyCode() {
+    if (document.getElementById("accessCodeInput").value.trim().toUpperCase() === SECRET_UNLOCK_CODE) {
+      isUnlocked = true; localStorage.setItem("medcode_unlocked", "true"); document.getElementById("codeError").classList.add("hidden");
+      closePaywall(); updateLockUI(); renderCategories(); alert("🎉 Premium Portal Unlocked!");
+    } else document.getElementById("codeError").classList.remove("hidden");
+  }
+  function switchTab(tab, el) {
+    document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active")); el.classList.add("active");
+  
   
