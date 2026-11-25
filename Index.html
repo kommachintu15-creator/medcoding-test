@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedCode Pro | Medical Coding Assessment Portal</title>
+  <style>
+    :root { --navy: #0a192f; --navy-light: #112240; --teal: #00b4d8; --teal-dark: #0077b6; --bg: #f4f7fa; --card: #ffffff; --text: #1e293b; --muted: #64748b; --success: #10b981; --danger: #ef4444; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 40px; }
+    header { background: var(--navy); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 1.2rem; font-weight: 700; } .logo span { color: var(--teal); }
+    .badge-pro { background: rgba(0,180,216,0.15); color: var(--teal); border: 1px solid var(--teal); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+    .badge-pro.unlocked { background: rgba(16,185,129,0.2); color: #34d399; border-color: #34d399; }
+    .container { max-width: 800px; margin: 0 auto; padding: 16px; }
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 18px; background: white; padding: 6px; border-radius: 12px; }
+    .nav-tab { flex: 1; text-align: center; padding: 10px; border-radius: 8px; border: none; background: transparent; font-weight: 600; color: var(--muted); cursor: pointer; }
+    .nav-tab.active { background: var(--navy); color: white; }
+    .hero { background: linear-gradient(135deg, var(--navy), var(--navy-light)); color: white; padding: 22px; border-radius: 14px; margin-bottom: 20px; }
+    .hero h1 { font-size: 1.3rem; margin-bottom: 8px; } .hero p { font-size: 0.9rem; color: #cbd5e1; margin-bottom: 14px; }
+    .btn { display: inline-block; padding: 12px 18px; border-radius: 10px; border: none; font-weight: 600; font-size: 0.95rem; cursor: pointer; text-align: center; text-decoration: none; }
+    .btn-teal { background: var(--teal); color: var(--navy); width: 100%; }
+    .btn-navy { background: var(--navy); color: white; }
+    .btn-outline { background: white; border: 1px solid #cbd5e1; color: var(--text); }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .cat-card { background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .cat-title { font-weight: 700; font-size: 0.98rem; color: var(--navy); }
+    .cat-meta { font-size: 0.8rem; color: var(--muted); }
+    .lock-pill { font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
+    .pill-free { background: #e0f2fe; color: #0369a1; } .pill-lock { background: #fef3c7; color: #b45309; }
+    .card { background: white; padding: 20px; border-radius: 14px; margin-bottom: 16px; }
+    .quiz-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+    .timer { background: #fee2e2; color: var(--danger); padding: 4px 10px; border-radius: 20px; }
+    .q-text { font-size: 1.05rem; font-weight: 600; color: var(--navy); margin-bottom: 16px; }
+    .option { width: 100%; text-align: left; padding: 14px; margin-bottom: 10px; border-radius: 10px; border: 2px solid #e2e8f0; background: white; font-size: 0.95rem; cursor: pointer; }
+    .option.selected { border-color: var(--teal-dark); background: #f0f9ff; font-weight: 600; }
+    .quiz-actions { display: flex; gap: 10px; margin-top: 16px; } .quiz-actions button { flex: 1; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(10,25,47,0.85); display: none; justify-content: center; align-items: center; padding: 16px; z-index: 999; }
+    .modal { background: white; border-radius: 16px; max-width: 420px; width: 100%; padding: 24px; text-align: center; }
+    .code-box { display: flex; gap: 8px; margin-top: 14px; }
+    .code-box input { flex: 1; padding: 12px; border: 2px solid #cbd5e1; border-radius: 10px; text-transform: uppercase; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+    .stat-box { background: white; padding: 14px 10px; border-radius: 12px; text-align: center; border: 1px solid #e2e8f0; }
+    .stat-num { font-size: 1.3rem; font-weight: 800; color: var(--navy); } .stat-lbl { font-size: 0.75rem; color: var(--muted); }
+    .exp-box { background: #f8fafc; border-left: 4px solid var(--teal); padding: 12px; margin-top: 10px; font-size: 0.88rem; border-radius: 6px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">MedCode<span>Pro</span></div>
+  <div id="statusBadge" class="badge-pro" onclick="openPaywall()">🔒 Free Preview (2 Qs)</div>
+</header>
+<div class="container">
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('home', this)">Assessments</button>
+    <button class="nav-tab" onclick="switchTab('dashboard', this)">My Dashboard</button>
+  </div>
+  <div id="homeView">
+    <div class="hero">
+      <h1>Medical Coding Job & CPC Assessment Portal</h1>
+      <p>Practice real recruitment MCQs across 9 core modules. Try 2 sample questions free—unlock full timed mock tests & detailed guidelines.</p>
+      <button class="btn btn-teal" onclick="startQuiz('ALL')">▶ Start Free 2-Question Demo</button>
+    </div>
+    <h3 style="margin-bottom:12px; color:var(--navy); font-size:1rem;">Assessment Categories (9 Modules)</h3>
+    <div class="grid" id="categoryGrid"></div>
+  </div>
+  <div id="quizView" class="hidden">
+    <div class="card">
+      <div class="quiz-top"><span id="quizCatLabel">Category</span><span id="qCounter">Q1</span><span class="timer" id="timerDisplay">15:00</span></div>
+      <div class="q-text" id="questionText"></div>
+      <div id="optionsList"></div>
+      <div class="quiz-actions">
+        <button class="btn btn-outline" id="prevBtn" onclick="prevQuestion()">← Prev</button>
+        <button class="btn btn-navy" id="nextBtn" onclick="nextQuestion()">Next →</button>
+      </div>
+    </div>
+  </div>
+  <div id="resultView" class="hidden">
+    <div class="card" style="text-align:center;">
+      <h2 style="color:var(--navy);">Assessment Complete!</h2>
+      <div style="font-size:2.4rem; font-weight:800; color:var(--teal-dark); margin:10px 0;" id="finalScoreText">0%</div>
+      <p style="color:var(--muted); margin-bottom:16px;" id="finalSummaryText"></p>
+      <div id="upsellAfterDemo" style="background:#fef3c7; padding:14px; border-radius:10px; margin-bottom:16px;">
+        <p style="color:#92400e; font-size:0.88rem; font-weight:600; margin-bottom:8px;">You completed the 2 free preview questions!</p>
+        <button class="btn btn-navy" style="width:100%;" onclick="openPaywall()">🔓 Unlock All 9 Modules & Full Mock Tests</button>
+      </div>
+      <button class="btn btn-outline" style="width:100%;" onclick="goHome()">Back to Categories</button>
+    </div>
+    <div id="reviewContainer"></div>
+  </div>
+  <div id="dashboardView" class="hidden">
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-num" id="statAttempts">0</div><div class="stat-lbl">Tests Taken</div></div>
+      <div class="stat-box"><div class="stat-num" id="statAvg">0%</div><div class="stat-lbl">Avg Score</div></div>
+      <div class="stat-box"><div class="stat-num" id="statBest">0%</div><div class="stat-lbl">Best Score</div></div>
+    </div>
+    <div class="card"><h3 style="margin-bottom:10px; color:var(--navy);">Recent History</h3><div id="historyList" style="font-size:0.88rem; color:var(--muted);">No assessments taken yet.</div></div>
+  </div>
+  </div>
+  
